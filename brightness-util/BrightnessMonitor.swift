@@ -43,9 +43,10 @@ private struct CoreDisplayBridge {
 
 /// Reads the main display brightness using the same order of operations as nriley/brightness PR #36.
 enum BrightnessReader {
-    static var currentPercentage: Int? {
+    static var currentCellCount: Int? {
         guard let brightness = currentBrightness else { return nil }
-        return Int((brightness * 100).rounded())
+        let cells = Int((brightness * 16).rounded())
+        return max(0, min(16, cells))
     }
 
     private static var currentBrightness: Double? {
@@ -140,7 +141,7 @@ enum BrightnessReader {
 
 /// Publishes brightness updates on a timer so the menu bar stays in sync.
 final class BrightnessMonitor: ObservableObject {
-    @Published private(set) var percentage: Int?
+    @Published private(set) var cellCount: Int?
 
     private var timer: AnyCancellable?
     private let queue = DispatchQueue(label: "BrightnessMonitor")
@@ -160,9 +161,9 @@ final class BrightnessMonitor: ObservableObject {
 
     private func refresh() {
         queue.async { [weak self] in
-            guard let value = BrightnessReader.currentPercentage else { return }
+            guard let value = BrightnessReader.currentCellCount else { return }
             DispatchQueue.main.async {
-                self?.percentage = value
+                self?.cellCount = value
             }
         }
     }

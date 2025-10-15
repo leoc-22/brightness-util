@@ -4,8 +4,18 @@ This repo was bootstrapped by Codex (GPT-5) in the Codex CLI. Everything below c
 
 ## Project shape
 - `brightness-util.xcodeproj` – standard SwiftUI macOS app set to build macOS 14+ (target currently disables App Sandbox & hardened runtime for SPI access).
-- `brightness_utilApp.swift` – entry point that installs a `MenuBarExtra` with a label showing the brightness percentage and a simple sheet UI (`ContentView`).
+- `brightness_utilApp.swift` – entry point that installs a `MenuBarExtra` with the classic 4×4 brightness tile indicator and a simple sheet UI (`ContentView`).
+- `ContentView.swift` – SwiftUI view used in the popover; references `BrightnessTile`.
+- `BrightnessTile.swift` – shared tile view that mimics the legacy brightness HUD.
+- `BrightnessMenuIcon.swift` – draws the non-templated menu bar icon using the same tile layout.
 - `BrightnessMonitor.swift` – ObservableObject that polls brightness; contains the interesting bits.
+
+## Code structure
+- **App lifecycle:** `brightness_utilApp` owns a single `BrightnessMonitor` instance and feeds it to the menu bar extra plus popover content.
+- **Monitoring:** `BrightnessMonitor` publishes the current 0–16 cell count by calling `BrightnessReader`, which wraps the SPI/IOKit fallbacks.
+- **Popover UI:** `ContentView` displays the brightness tile and the quit button. It stays intentionally small for the menu extra.
+- **Tile rendering:** `BrightnessTile` handles the 4×4 dot layout and color scheme adjustments so both popover and icon stay in sync.
+- **Menu bar icon:** `BrightnessMenuIcon` rasterizes the tile into an `NSImage` (non-templated) for crisp dots in the status bar.
 
 ## Brightness reading strategy
 The current implementation mirrors nriley/brightness#36; it follows the same DisplayServices → CoreDisplay → IOKit fallback chain described in that PR:
@@ -17,8 +27,9 @@ The current implementation mirrors nriley/brightness#36; it follows the same Dis
 Private APIs mean this app cannot ship through TestFlight/App Store without rework. For personal use, keep signing locally; if you re-enable the sandbox you’ll lose the SPI paths.
 
 ## Known runtime behavior
-- When sandboxed the app is unable to talk to `backlightd`, so it shows `--%`. We disable the sandbox in `project.pbxproj` right now to avoid that.
+- When sandboxed the app is unable to talk to `backlightd`, so the tile renders with dim dots only. We disable the sandbox in `project.pbxproj` right now to avoid that.
 - Even with the SPI checks some logs like “Unable to obtain a task name port right…” may show up on certain macOS builds; they’re benign but indicate the constraints above.
+- The app sets its activation policy to accessory so it does not display a Dock icon while running.
 
 ## Build/testing tips
 - Builds require selecting a valid signing team in Xcode or running with `CODE_SIGNING_ALLOWED=NO` locally.
