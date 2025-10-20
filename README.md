@@ -4,8 +4,7 @@ Simple menu bar utility that displays the current main-display brightness for ma
 
 ![how the app looks like](./example.png)
 
-The project uses private DisplayServices/CoreDisplay SPI calls (mirroring the `nriley/brightness` fallback chain), so it is only meant for personal, locally signed use.
-
+The project uses private DisplayServices/CoreDisplay SPI calls (mirroring the `nriley/brightness` fallback chain).
 
 ## Features
 
@@ -30,19 +29,6 @@ xcodebuild -project brightness-util.xcodeproj \
 
 This places the release `.app` bundle at `build/Build/Products/Release/brightness-util.app`.
 
-To extract just the executable (unsigned) for local use:
-
-```bash
-cp build/Build/Products/Release/brightness-util.app/Contents/MacOS/brightness-util \
-   build/brightness-util-exec
-```
-
-If macOS flags the executable as “damaged,” clear the quarantine bit:
-
-```bash
-xattr -cr build/brightness-util-exec
-```
-
 ## Launching
 
 - To run immediately, execute `open build/Build/Products/Release/brightness-util.app`.
@@ -51,8 +37,22 @@ xattr -cr build/brightness-util-exec
 
 ## Optional Signing & Distribution
 
-- If you want macOS Gatekeeper to trust the binary, rerun the build without the `CODE_SIGNING_ALLOWED=NO` override after selecting a signing identity in Xcode.
-- To share the app, zip the `.app` bundle or package it into a `.dmg` (e.g. with `create-dmg` or Disk Utility) before distributing.
+- To share the app, zip the `.app` bundle or package it into a `.dmg` (e.g. with `create-dmg` or Disk Utility) before distributing. When zipping, use Finder’s **Compress** option or `ditto -c -k --sequesterRsrc --keepParent brightness-util.app brightness-util.zip` to avoid stripping resource forks.
+
+## Clearing the “App is Damaged” Warning
+
+Unsigned builds that travel over AirDrop, Messages, or a downloaded `.zip` pick up macOS’s quarantine flag. Gatekeeper interprets the unsigned/quarantined combo as “brightness-util.app is damaged and can’t be opened.” You just need to remove the quarantine attribute and reopen it.
+
+1. Copy `brightness-util.app` to a writable folder (e.g. `~/Applications`).
+2. Run the following in Terminal, substituting the actual path if it differs:
+
+   ```bash
+   xattr -dr com.apple.quarantine "/Users/<username>/Applications/brightness-util.app"
+   ```
+
+3. Double-click the app again. The first launch will still show the usual “Unknown developer” prompt—choose **Open** to continue.
+
+If they already tried to launch it once, System Settings → Privacy & Security will show an **Open Anyway** button for `brightness-util`. Clicking that clears the quarantine flag for that copy without using Terminal.
 
 ## Development Notes
 
