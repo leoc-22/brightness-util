@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import Combine
 import CoreGraphics
 import IOKit
@@ -43,14 +44,7 @@ private struct CoreDisplayBridge {
 
 /// Reads the main display brightness using the same order of operations as nriley/brightness PR #36.
 enum BrightnessReader {
-    static var currentCellCount: Int? {
-        guard let brightness = currentBrightness else { return nil }
-        let cells = Int((brightness * 16).rounded())
-        return max(0, min(16, cells))
-    }
-
-    private static var currentBrightness: Double? {
-        let displayID = CGMainDisplayID()
+    static func brightness(for displayID: CGDirectDisplayID) -> Double? {
         let uintDisplayID = UInt32(displayID)
 
         // Prefer DisplayServices SPI when available.
@@ -59,7 +53,7 @@ enum BrightnessReader {
             let canChange = displayServices.canChangeBrightness?(uintDisplayID) ?? true
             if canChange {
                 var value: Float = 0
-                if getBrightness(uintDisplayID, &value) == 0 {
+                if getBrightness(uintDisplayID, &value) == 0, value.isFinite, (0...1).contains(value) {
                     return Double(value)
                 }
             }
@@ -68,7 +62,7 @@ enum BrightnessReader {
         // Fall back to CoreDisplay SPI.
         if let getBrightness = CoreDisplayBridge.shared.getUserBrightness {
             let value = getBrightness(displayID)
-            if value.isFinite {
+            if value.isFinite, (0...1).contains(value) {
                 return value
             }
         }
@@ -77,13 +71,14 @@ enum BrightnessReader {
         guard let service = mainDisplayService(for: displayID) else { return nil }
         defer { IOObjectRelease(service) }
 
-        if let registryValue = IORegistryEntryCreateCFProperty(service, kIODisplayBrightnessKey as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue() as? NSNumber {
+        if let registryValue = IORegistryEntryCreateCFProperty(service, kIODisplayBrightnessKey as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue() as? NSNumber,
+           registryValue.doubleValue.isFinite, (0...1).contains(registryValue.doubleValue) {
             return registryValue.doubleValue
         }
 
         var brightness: Float = 0
         let status = IODisplayGetFloatParameter(service, 0, kIODisplayBrightnessKey as CFString, &brightness)
-        guard status == kIOReturnSuccess else { return nil }
+        guard status == kIOReturnSuccess, brightness.isFinite, (0...1).contains(brightness) else { return nil }
         return Double(brightness)
     }
 
@@ -141,7 +136,12 @@ enum BrightnessReader {
 
 /// Publishes brightness updates on a timer so the menu bar stays in sync.
 final class BrightnessMonitor: ObservableObject {
-    @Published private(set) var cellCount: Int?
+    @Published private(set) var brightness: Double?
+    @Published private(set) var displayName = "Main Display"
+
+    var cellCount: Int? {
+        brightness.map { Int(($0 * 16).rounded()) }
+    }
 
     private var timer: AnyCancellable?
     private let queue = DispatchQueue(label: "BrightnessMonitor")
@@ -160,10 +160,17 @@ final class BrightnessMonitor: ObservableObject {
     }
 
     private func refresh() {
+        let displayID = CGMainDisplayID()
+        let displayName = NSScreen.screens.first {
+            ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value == displayID
+        }?.localizedName ?? "Main Display"
+
         queue.async { [weak self] in
-            guard let value = BrightnessReader.currentCellCount else { return }
+            let value = BrightnessReader.brightness(for: displayID)
             DispatchQueue.main.async {
-                self?.cellCount = value
+                guard let self, CGMainDisplayID() == displayID else { return }
+                if self.brightness != value { self.brightness = value }
+                if self.displayName != displayName { self.displayName = displayName }
             }
         }
     }

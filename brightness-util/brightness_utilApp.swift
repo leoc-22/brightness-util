@@ -11,10 +11,10 @@ struct brightness_utilApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            ContentView(monitor: monitor)
+            ContentView(displayName: monitor.displayName, brightness: monitor.brightness)
         } label: {
             BrightnessMenuIcon(filledCells: monitor.cellCount)
         }
-        .menuBarExtraStyle(.menu)
+        .menuBarExtraStyle(.window)
     }
 }

@@ -2,47 +2,72 @@ import SwiftUI
 import AppKit
 
 struct ContentView: View {
-    @ObservedObject var monitor: BrightnessMonitor
+    let displayName: String
+    let brightness: Double?
 
     private var percentageText: String {
-        guard let cells = monitor.cellCount else { return "--%" }
-        let percent = Int((Double(cells) / 16.0 * 100.0).rounded())
+        guard let brightness else { return "—" }
+        let percent = Int((brightness * 100).rounded())
         return "\(percent)%"
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Screen Brightness")
+            Text(displayName)
                 .font(.headline)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
 
-            Text(percentageText)
-                .font(.system(size: 42, weight: .bold, design: .rounded))
-                .monospacedDigit()
+            HStack(alignment: .firstTextBaseline) {
+                Text("Brightness")
+                    .font(.subheadline)
+                Spacer()
+                Text(percentageText)
+                    .font(.system(size: 28, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+            }
 
-            BrightnessTile(
-                filledCells: monitor.cellCount,
-                circleSize: 14,
-                spacing: 8,
-                cornerRadius: 18,
-                columns: 4
-            )
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, 4)
+            HStack(spacing: 10) {
+                Image(systemName: "sun.min")
+                GeometryReader { geometry in
+                    Capsule()
+                        .fill(.primary.opacity(0.15))
+                        .overlay(alignment: .leading) {
+                            Capsule()
+                                .fill(.primary)
+                                .frame(width: geometry.size.width * CGFloat(brightness ?? 0))
+                        }
+                }
+                .frame(height: 4)
+                Image(systemName: "sun.max")
+            }
+            .font(.system(size: 12))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Brightness")
+            .accessibilityValue(brightness == nil ? "Unavailable" : percentageText)
+
+            if brightness == nil {
+                Text("Brightness unavailable for this display.")
+                    .font(.caption)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             Divider()
 
             Button("Quit Brightness Util") {
                 NSApp.terminate(nil)
             }
+            .buttonStyle(.plain)
             .keyboardShortcut("q")
         }
+        .foregroundStyle(.primary)
         .padding(16)
-        .frame(width: 200)
+        .frame(width: 240)
     }
 }
 
 #if DEBUG
 #Preview {
-    ContentView(monitor: BrightnessMonitor())
+    ContentView(displayName: "Built-in Retina Display", brightness: 0.42)
 }
 #endif

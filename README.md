@@ -2,14 +2,14 @@
 
 Simple menu bar utility that displays the current main-display brightness for macOS 27. The aim is to bring back the 16-cell brightness bar in the macOS 27 menu bar.
 
-![how the app looks like](./example.png)
+![Brightness dropdown showing the display name, 42% brightness, and a compact brightness bar](./dropdown-preview.png)
 
 The project uses private DisplayServices/CoreDisplay SPI calls (mirroring the `nriley/brightness` fallback chain).
 
 ## Features
 
 - Menu bar extra that mimics the classic 16-cell brightness HUD with crisp dot rendering.
-- Popover view showing both the dot grid and an exact percentage for the current brightness.
+- Compact popover showing the main display's name, brightness rounded to the nearest percent from the original reading, and a small brightness bar.
 - Polling monitor that keeps the display in sync via DisplayServices/CoreDisplay/IOKit fallbacks.
 - Runs as an accessory app so no Dock icon appears while the utility is active.
 - SwiftUI-based implementation with reusable components for the tile and menu icon.
