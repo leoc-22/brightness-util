@@ -13,6 +13,7 @@ struct BrightnessMenuIcon: View {
 
     var body: some View {
         Image(nsImage: BrightnessMenuIconRenderer.makeIcon(filledCells: filledCells))
+            .renderingMode(.template)
             .interpolation(.none)
             .accessibilityLabel(accessibilityText)
     }
@@ -33,7 +34,8 @@ private enum BrightnessMenuIconRenderer {
         let image = NSImage(size: size, flipped: false) { rect in
             drawIcon(in: rect, filledCells: filledCells)
         }
-        image.isTemplate = false
+        // Let the menu bar choose the foreground for its appearance and selection state.
+        image.isTemplate = true
         return image
     }
 
@@ -47,10 +49,10 @@ private enum BrightnessMenuIconRenderer {
             xRadius: cornerRadius,
             yRadius: cornerRadius
         )
-        NSColor(calibratedWhite: 0, alpha: 0.42).setFill()
+        NSColor.black.withAlphaComponent(0.06).setFill()
         backgroundPath.fill()
-        NSColor(calibratedWhite: 1.0, alpha: 0.2).setStroke()
-        backgroundPath.lineWidth = 1
+        NSColor.black.withAlphaComponent(0.12).setStroke()
+        backgroundPath.lineWidth = 0.5
         backgroundPath.stroke()
 
         let contentWidth = CGFloat(columns) * circleSize + CGFloat(columns - 1) * spacing
@@ -70,11 +72,11 @@ private enum BrightnessMenuIconRenderer {
                 let circlePath = NSBezierPath(ovalIn: circleRect)
 
                 if !hasValue {
-                    NSColor(calibratedWhite: 1.0, alpha: 0.12).setFill()
+                    NSColor.black.withAlphaComponent(0.16).setFill()
                 } else if index < clippedFilled {
-                    NSColor.white.setFill()
+                    NSColor.black.setFill()
                 } else {
-                    NSColor(calibratedWhite: 1.0, alpha: 0.15).setFill()
+                    NSColor.black.withAlphaComponent(0.22).setFill()
                 }
                 circlePath.fill()
             }
