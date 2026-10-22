@@ -5,7 +5,7 @@ struct ContentView: View {
     let displayName: String
     let brightness: Double?
 
-    @State private var isQuitHovered = false
+    @StateObject private var launchAtLogin = LaunchAtLogin()
 
     private var percentageText: String {
         guard let brightness else { return "—" }
@@ -63,34 +63,59 @@ struct ContentView: View {
                 .padding(.horizontal, 8)
                 .padding(.bottom, 6)
 
-            Button {
-                NSApp.terminate(nil)
-            } label: {
-                HStack {
-                    Text("Quit Brightness Util")
-                    Spacer()
-                    Text("⌘Q")
-                        .foregroundStyle(isQuitHovered ? Color(nsColor: .selectedMenuItemTextColor) : Color.secondary)
+            MenuRowButton(action: launchAtLogin.toggle) {
+                Text("Launch at Login")
+                Spacer()
+                if launchAtLogin.requiresApproval {
+                    Text("Needs approval")
+                        .font(.system(size: 11))
+                } else if launchAtLogin.isEnabled {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .semibold))
                         .accessibilityHidden(true)
                 }
-                    .font(.system(size: 13))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 7)
-                    .foregroundStyle(isQuitHovered ? Color(nsColor: .selectedMenuItemTextColor) : Color.primary)
-                    .background {
-                        RoundedRectangle(cornerRadius: 7)
-                            .fill(isQuitHovered ? Color(nsColor: .selectedContentBackgroundColor) : Color.clear)
-                    }
-                    .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .onHover { isQuitHovered = $0 }
-            .onDisappear { isQuitHovered = false }
+            .accessibilityAddTraits(launchAtLogin.isEnabled ? .isSelected : [])
+
+            MenuRowButton(action: { NSApp.terminate(nil) }) {
+                Text("Quit Brightness Util")
+                Spacer()
+                Text("⌘Q")
+                    .opacity(0.6)
+                    .accessibilityHidden(true)
+            }
             .keyboardShortcut("q")
         }
         .foregroundStyle(.primary)
         .padding(8)
         .frame(width: 240)
+        .onAppear { launchAtLogin.refresh() }
+    }
+}
+
+/// A full-width row that highlights on hover like a native menu item.
+private struct MenuRowButton<Label: View>: View {
+    let action: () -> Void
+    @ViewBuilder let label: () -> Label
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(content: label)
+                .font(.system(size: 13))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 7)
+                .foregroundStyle(isHovered ? Color(nsColor: .selectedMenuItemTextColor) : Color.primary)
+                .background {
+                    RoundedRectangle(cornerRadius: 7)
+                        .fill(isHovered ? Color(nsColor: .selectedContentBackgroundColor) : Color.clear)
+                }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+        .onDisappear { isHovered = false }
     }
 }
 
