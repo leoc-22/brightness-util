@@ -78,7 +78,7 @@ struct ContentView: View {
             .accessibilityAddTraits(launchAtLogin.isEnabled ? .isSelected : [])
 
             MenuRowButton(action: { NSApp.terminate(nil) }) {
-                Text("Quit Brightness Util")
+                Text("Quit")
                 Spacer()
                 Text("⌘Q")
                     .opacity(0.6)
